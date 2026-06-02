@@ -1,0 +1,676 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string",
+            "minLength": 1,
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Not used directly; present to satisfy the arm-ttk 'Location-Should-Not-Be-Hardcoded' rule."
+            }
+        },
+        "workspace-location": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Region of the Log Analytics workspace."
+            }
+        },
+        "subscription": {
+            "type": "string",
+            "defaultValue": "[last(split(subscription().id, '/'))]",
+            "metadata": {
+                "description": "Subscription id where Microsoft Sentinel is configured."
+            }
+        },
+        "resourceGroupName": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().name]",
+            "metadata": {
+                "description": "Resource group where Microsoft Sentinel is configured."
+            }
+        },
+        "workspace": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The Log Analytics workspace enabled for Microsoft Sentinel."
+            }
+        }
+    },
+    "variables": {
+        "workspaceResourceId": "[resourceId('microsoft.OperationalInsights/Workspaces', parameters('workspace'))]",
+        "_solutionName": "Bitsight Risk Findings",
+        "_solutionVersion": "3.0.1",
+        "_solutionAuthor": "Obrela",
+        "_packageIcon": "<img src=\"https://raw.githubusercontent.com/your-org/your-repo/main/bitsight-logo.svg\" width=\"75px\" height=\"75px\">",
+        "_solutionId": "azuresentinel.azure-sentinel-solution-bitsightriskfindings",
+        "dataConnectorVersionConnectorDefinition": "1.0.1",
+        "dataConnectorVersionConnections": "1.0.1",
+        "_solutionTier": "Community",
+        "_dataConnectorContentIdConnectorDefinition": "BitsightRiskFindingsConnectorDefinition",
+        "dataConnectorTemplateNameConnectorDefinition": "[concat(parameters('workspace'),'-dc-',uniquestring(variables('_dataConnectorContentIdConnectorDefinition')))]",
+        "_dataConnectorContentIdConnections": "BitsightRiskFindingsConnections",
+        "dataConnectorTemplateNameConnections": "[concat(parameters('workspace'),'-dc-',uniquestring(variables('_dataConnectorContentIdConnections')))]",
+        "_logAnalyticsTableId1": "BitsightRiskFindings_CL",
+        "_dcrName": "BitsightDCR"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/providers/contentTemplates",
+            "apiVersion": "2023-04-01-preview",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/', variables('dataConnectorTemplateNameConnectorDefinition'), variables('dataConnectorVersionConnectorDefinition'))]",
+            "location": "[parameters('workspace-location')]",
+            "dependsOn": [
+                "[extensionResourceId(resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspace')), 'Microsoft.SecurityInsights/contentPackages', variables('_solutionId'))]"
+            ],
+            "properties": {
+                "contentId": "[variables('_dataConnectorContentIdConnectorDefinition')]",
+                "displayName": "[concat(variables('_solutionName'), ' Connector Definition')]",
+                "contentKind": "DataConnector",
+                "mainTemplate": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "[variables('dataConnectorVersionConnectorDefinition')]",
+                    "parameters": {},
+                    "variables": {},
+                    "resources": [
+                        {
+                            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/',concat('DataConnector-', variables('_dataConnectorContentIdConnectorDefinition')))]",
+                            "apiVersion": "2022-01-01-preview",
+                            "type": "Microsoft.OperationalInsights/workspaces/providers/metadata",
+                            "properties": {
+                                "parentId": "[extensionResourceId(resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspace')), 'Microsoft.SecurityInsights/dataConnectorDefinitions', variables('_dataConnectorContentIdConnectorDefinition'))]",
+                                "contentId": "[variables('_dataConnectorContentIdConnectorDefinition')]",
+                                "kind": "DataConnector",
+                                "version": "[variables('dataConnectorVersionConnectorDefinition')]",
+                                "source": {
+                                    "sourceId": "[variables('_solutionId')]",
+                                    "name": "[variables('_solutionName')]",
+                                    "kind": "Solution"
+                                },
+                                "author": {
+                                    "name": "[variables('_solutionAuthor')]"
+                                },
+                                "support": {
+                                    "name": "[variables('_solutionAuthor')]",
+                                    "tier": "[variables('_solutionTier')]"
+                                },
+                                "dependencies": {
+                                    "criteria": [
+                                        {
+                                            "version": "[variables('dataConnectorVersionConnections')]",
+                                            "contentId": "[variables('_dataConnectorContentIdConnections')]",
+                                            "kind": "ResourcesDataConnector"
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "[variables('_dcrName')]",
+                            "apiVersion": "2021-09-01-preview",
+                            "type": "Microsoft.Insights/dataCollectionRules",
+                            "location": "[parameters('workspace-location')]",
+                            "kind": null,
+                            "properties": {
+                                "dataCollectionEndpointId": "[concat('/subscriptions/',parameters('subscription'),'/resourceGroups/',parameters('resourceGroupName'),'/providers/Microsoft.Insights/dataCollectionEndpoints/',parameters('workspace'))]",
+                                "streamDeclarations": {
+                                    "Custom-BitsightRiskFindingsRaw": {
+                                        "columns": [
+                                            {
+                                                "name": "temporary_id",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "name": "risk_vector",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "name": "risk_category",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "name": "risk_vector_label",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "name": "grade",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "name": "severity",
+                                                "type": "real"
+                                            },
+                                            {
+                                                "name": "severity_category",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "name": "affects_rating",
+                                                "type": "boolean"
+                                            },
+                                            {
+                                                "name": "first_seen",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "name": "last_seen",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "name": "duration",
+                                                "type": "dynamic"
+                                            },
+                                            {
+                                                "name": "evidence_key",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "name": "rolledup_observation_id",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "name": "impacts_risk_vector_details",
+                                                "type": "dynamic"
+                                            },
+                                            {
+                                                "name": "remaining_decay",
+                                                "type": "real"
+                                            },
+                                            {
+                                                "name": "remediated",
+                                                "type": "boolean"
+                                            },
+                                            {
+                                                "name": "comments",
+                                                "type": "dynamic"
+                                            },
+                                            {
+                                                "name": "assets",
+                                                "type": "dynamic"
+                                            },
+                                            {
+                                                "name": "tags",
+                                                "type": "dynamic"
+                                            },
+                                            {
+                                                "name": "details",
+                                                "type": "dynamic"
+                                            }
+                                        ]
+                                    }
+                                },
+                                "destinations": {
+                                    "logAnalytics": [
+                                        {
+                                            "workspaceResourceId": "[variables('workspaceResourceId')]",
+                                            "name": "clv2ws1"
+                                        }
+                                    ]
+                                },
+                                "dataFlows": [
+                                    {
+                                        "streams": [
+                                            "Custom-BitsightRiskFindingsRaw"
+                                        ],
+                                        "destinations": [
+                                            "clv2ws1"
+                                        ],
+                                        "transformKql": "source\n| extend _d = details\n| extend raw = pack('temporary_id', temporary_id, 'risk_vector', risk_vector, 'risk_category', risk_category, 'risk_vector_label', risk_vector_label, 'grade', grade, 'severity', severity, 'severity_category', severity_category, 'affects_rating', affects_rating, 'first_seen', first_seen, 'last_seen', last_seen, 'duration', duration, 'evidence_key', evidence_key, 'rolledup_observation_id', rolledup_observation_id, 'impacts_risk_vector_details', impacts_risk_vector_details, 'remaining_decay', remaining_decay, 'remediated', remediated, 'comments', comments, 'assets', assets, 'tags', tags, 'details', details)\n| extend rv = tolower(iif(isnotempty(tostring(_d.risk_vector)), tostring(_d.risk_vector), tostring(risk_vector)))\n| extend gr = tolower(iif(isnotempty(tostring(_d.grade)), tostring(_d.grade), tostring(grade)))\n| extend sev = iif(isnotnull(_d.severity), toreal(_d.severity), toreal(severity))\n| extend sevcat = tolower(iif(isnotempty(tostring(_d.severity_category)), tostring(_d.severity_category), tostring(severity_category)))\n| extend normalized_risk_state = case(gr in ('good','fair','warn','bad','neutral'), gr, sevcat in ('severe','material'), 'bad', sevcat == 'moderate', 'warn', sevcat == 'minor', 'fair', sev >= 7.0, 'bad', sev >= 4.0, 'warn', sev >= 1.0, 'fair', 'unknown')\n| where normalized_risk_state in ('warn','bad')\n| where rv in ('botnet_infections','spam_propagation','malware_servers','unsolicited_comm','potentially_exploited','ssl_certificates','patching_cadence','mobile_software','open_ports','file_sharing')\n| extend _cguid = iif(isnotempty(tostring(_d.company_guid)), tostring(_d.company_guid), '')\n| extend _evid = iif(isnotempty(tostring(_d.rolledup_observation_id)), tostring(_d.rolledup_observation_id), iif(isnotempty(tostring(_d.evidence_key)), tostring(_d.evidence_key), iif(isnotempty(tostring(temporary_id)), tostring(temporary_id), hash_sha256(tostring(raw)))))\n| project\n    TimeGenerated = now(),\n    company_guid = _cguid,\n    company_name = iif(isnotempty(tostring(_d.company_name)), tostring(_d.company_name), ''),\n    finding_uid = strcat(_cguid, ':', rv, ':', _evid),\n    temporary_id = tostring(temporary_id),\n    risk_category = iif(isnotempty(tostring(_d.risk_category)), tostring(_d.risk_category), tostring(risk_category)),\n    risk_vector = rv,\n    risk_vector_label = iif(isnotempty(tostring(_d.risk_vector_label)), tostring(_d.risk_vector_label), tostring(risk_vector_label)),\n    finding_grade = gr,\n    severity = sev,\n    severity_category = sevcat,\n    normalized_risk_state,\n    affects_rating = tobool(affects_rating),\n    first_seen = todatetime(iif(isnotempty(tostring(_d.first_seen)), tostring(_d.first_seen), tostring(first_seen))),\n    last_seen = todatetime(iif(isnotempty(tostring(_d.last_seen)), tostring(_d.last_seen), tostring(last_seen))),\n    duration = iif(isnotempty(tostring(_d.duration)), tostring(_d.duration), tostring(duration)),\n    evidence_key = iif(isnotempty(tostring(_d.evidence_key)), tostring(_d.evidence_key), tostring(evidence_key)),\n    rolledup_observation_id = iif(isnotempty(tostring(_d.rolledup_observation_id)), tostring(_d.rolledup_observation_id), tostring(rolledup_observation_id)),\n    impacts_risk_vector_details = iif(isnotempty(tostring(_d.impacts_risk_vector_details)), tostring(_d.impacts_risk_vector_details), tostring(impacts_risk_vector_details)),\n    remaining_decay = iif(isnotnull(_d.remaining_decay), toreal(_d.remaining_decay), toreal(remaining_decay)),\n    remediated = iif(isnotnull(_d.remediated), tobool(_d.remediated), tobool(remediated)),\n    comments = iif(isnotempty(tostring(_d.comments)), tostring(_d.comments), tostring(comments)),\n    assets = assets,\n    tags = iif(isnotnull(_d.tags), _d.tags, tags),\n    details = _d,\n    raw = raw",
+                                        "outputStream": "Custom-BitsightRiskFindings_CL"
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "name": "[variables('_logAnalyticsTableId1')]",
+                            "apiVersion": "2022-10-01",
+                            "type": "Microsoft.OperationalInsights/workspaces/tables",
+                            "location": "[parameters('workspace-location')]",
+                            "kind": null,
+                            "properties": {
+                                "schema": {
+                                    "name": "[variables('_logAnalyticsTableId1')]",
+                                    "columns": [
+                                        {
+                                            "name": "TimeGenerated",
+                                            "type": "datetime"
+                                        },
+                                        {
+                                            "name": "company_guid",
+                                            "type": "string"
+                                        },
+                                        {
+                                            "name": "company_name",
+                                            "type": "string"
+                                        },
+                                        {
+                                            "name": "finding_uid",
+                                            "type": "string"
+                                        },
+                                        {
+                                            "name": "temporary_id",
+                                            "type": "string"
+                                        },
+                                        {
+                                            "name": "risk_category",
+                                            "type": "string"
+                                        },
+                                        {
+                                            "name": "risk_vector",
+                                            "type": "string"
+                                        },
+                                        {
+                                            "name": "risk_vector_label",
+                                            "type": "string"
+                                        },
+                                        {
+                                            "name": "finding_grade",
+                                            "type": "string"
+                                        },
+                                        {
+                                            "name": "severity",
+                                            "type": "real"
+                                        },
+                                        {
+                                            "name": "severity_category",
+                                            "type": "string"
+                                        },
+                                        {
+                                            "name": "normalized_risk_state",
+                                            "type": "string"
+                                        },
+                                        {
+                                            "name": "affects_rating",
+                                            "type": "boolean"
+                                        },
+                                        {
+                                            "name": "first_seen",
+                                            "type": "datetime"
+                                        },
+                                        {
+                                            "name": "last_seen",
+                                            "type": "datetime"
+                                        },
+                                        {
+                                            "name": "duration",
+                                            "type": "string"
+                                        },
+                                        {
+                                            "name": "evidence_key",
+                                            "type": "string"
+                                        },
+                                        {
+                                            "name": "rolledup_observation_id",
+                                            "type": "string"
+                                        },
+                                        {
+                                            "name": "impacts_risk_vector_details",
+                                            "type": "string"
+                                        },
+                                        {
+                                            "name": "remaining_decay",
+                                            "type": "real"
+                                        },
+                                        {
+                                            "name": "remediated",
+                                            "type": "boolean"
+                                        },
+                                        {
+                                            "name": "comments",
+                                            "type": "string"
+                                        },
+                                        {
+                                            "name": "assets",
+                                            "type": "dynamic"
+                                        },
+                                        {
+                                            "name": "tags",
+                                            "type": "dynamic"
+                                        },
+                                        {
+                                            "name": "details",
+                                            "type": "dynamic"
+                                        },
+                                        {
+                                            "name": "raw",
+                                            "type": "dynamic"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                "packageKind": "Solution",
+                "packageVersion": "[variables('_solutionVersion')]",
+                "packageName": "[variables('_solutionName')]",
+                "contentProductId": "[concat(substring(variables('_solutionId'), 0, 50),'-','dc','-', uniqueString(concat(variables('_solutionId'),'-','DataConnector','-',variables('_dataConnectorContentIdConnectorDefinition'),'-', variables('dataConnectorVersionConnectorDefinition'))))]",
+                "packageId": "[variables('_solutionId')]",
+                "contentSchemaVersion": "3.0.0",
+                "version": "[variables('_solutionVersion')]"
+            }
+        },
+        {
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/',variables('_dataConnectorContentIdConnectorDefinition'))]",
+            "apiVersion": "2022-09-01-preview",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/dataConnectorDefinitions",
+            "location": "[parameters('workspace-location')]",
+            "kind": "Customizable",
+            "properties": {
+                "connectorUiConfig": {
+                    "id": "BitsightRiskFindingsConnectorDefinition",
+                    "title": "Bitsight Risk Findings (CCF)",
+                    "publisher": "Obrela",
+                    "descriptionMarkdown": "Ingests Bitsight Security Ratings risk-vector findings for a portfolio company into Microsoft Sentinel using the Codeless Connector Framework. Migrated from the Bitsight Risk Vector Azure Function solution.",
+                    "graphQueriesTableName": "BitsightRiskFindings_CL",
+                    "graphQueries": [
+                        {
+                            "metricName": "Total findings received",
+                            "legend": "Bitsight risk findings",
+                            "baseQuery": "BitsightRiskFindings_CL"
+                        }
+                    ],
+                    "sampleQueries": [
+                        {
+                            "description": "Current deduplicated bad/warn findings",
+                            "query": "BitsightRiskFindings_CL\n| summarize arg_max(TimeGenerated, *) by finding_uid\n| where normalized_risk_state in ('warn','bad')\n| order by TimeGenerated desc"
+                        },
+                        {
+                            "description": "Findings by risk vector and state",
+                            "query": "BitsightRiskFindings_CL\n| summarize Findings=count() by normalized_risk_state, risk_vector_label"
+                        }
+                    ],
+                    "dataTypes": [
+                        {
+                            "name": "BitsightRiskFindings_CL",
+                            "lastDataReceivedQuery": "BitsightRiskFindings_CL\n| summarize Time = max(TimeGenerated)\n| where isnotempty(Time)"
+                        }
+                    ],
+                    "connectivityCriteria": [
+                        {
+                            "type": "HasDataConnectors"
+                        }
+                    ],
+                    "availability": {
+                        "isPreview": true
+                    },
+                    "permissions": {
+                        "resourceProvider": [
+                            {
+                                "provider": "Microsoft.OperationalInsights/workspaces",
+                                "permissionsDisplayText": "Read and Write permissions are required.",
+                                "providerDisplayName": "Workspace",
+                                "scope": "Workspace",
+                                "requiredPermissions": {
+                                    "write": true,
+                                    "read": true,
+                                    "delete": true
+                                }
+                            }
+                        ],
+                        "customs": [
+                            {
+                                "name": "Bitsight API token",
+                                "description": "A Bitsight API token with access to the target portfolio company is required. Generate it from Account > API Tokens in the Bitsight console."
+                            },
+                            {
+                                "name": "Company GUID",
+                                "description": "The Bitsight company GUID whose findings will be ingested. One connection ingests one company."
+                            }
+                        ]
+                    },
+                    "instructionSteps": [
+                        {
+                            "title": "Connect Bitsight to Microsoft Sentinel",
+                            "description": "Provide the Bitsight API token and the company GUID, then select Connect. One connection ingests findings for one company; add additional connections to cover more companies.",
+                            "instructions": [
+                                {
+                                    "type": "Textbox",
+                                    "parameters": {
+                                        "label": "Company GUID",
+                                        "placeholder": "00000000-0000-0000-0000-000000000000",
+                                        "type": "text",
+                                        "name": "companyGuid"
+                                    }
+                                },
+                                {
+                                    "type": "Textbox",
+                                    "parameters": {
+                                        "label": "Bitsight API token",
+                                        "placeholder": "Your Bitsight API token",
+                                        "type": "password",
+                                        "name": "apiToken"
+                                    }
+                                },
+                                {
+                                    "type": "ConnectionToggleButton",
+                                    "parameters": {
+                                        "connectLabel": "Connect",
+                                        "name": "connect"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/',concat('DataConnector-', variables('_dataConnectorContentIdConnectorDefinition')))]",
+            "apiVersion": "2022-01-01-preview",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/metadata",
+            "properties": {
+                "parentId": "[extensionResourceId(resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspace')), 'Microsoft.SecurityInsights/dataConnectorDefinitions', variables('_dataConnectorContentIdConnectorDefinition'))]",
+                "contentId": "[variables('_dataConnectorContentIdConnectorDefinition')]",
+                "kind": "DataConnector",
+                "version": "[variables('dataConnectorVersionConnectorDefinition')]",
+                "source": {
+                    "sourceId": "[variables('_solutionId')]",
+                    "name": "[variables('_solutionName')]",
+                    "kind": "Solution"
+                },
+                "author": {
+                    "name": "[variables('_solutionAuthor')]"
+                },
+                "support": {
+                    "name": "[variables('_solutionAuthor')]",
+                    "tier": "[variables('_solutionTier')]"
+                },
+                "dependencies": {
+                    "criteria": [
+                        {
+                            "version": "[variables('dataConnectorVersionConnections')]",
+                            "contentId": "[variables('_dataConnectorContentIdConnections')]",
+                            "kind": "ResourcesDataConnector"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/providers/contentTemplates",
+            "apiVersion": "2023-04-01-preview",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/', variables('dataConnectorTemplateNameConnections'), variables('dataConnectorVersionConnections'))]",
+            "location": "[parameters('workspace-location')]",
+            "dependsOn": [
+                "[extensionResourceId(resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspace')), 'Microsoft.SecurityInsights/contentPackages', variables('_solutionId'))]"
+            ],
+            "properties": {
+                "contentId": "[variables('_dataConnectorContentIdConnections')]",
+                "displayName": "[concat(variables('_solutionName'), ' Connections')]",
+                "contentKind": "ResourcesDataConnector",
+                "mainTemplate": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "[variables('dataConnectorVersionConnections')]",
+                    "parameters": {
+                        "connectorDefinitionName": {
+                            "defaultValue": "BitsightRiskFindingsConnectorDefinition",
+                            "type": "string",
+                            "minLength": 1
+                        },
+                        "workspace": {
+                            "defaultValue": "[parameters('workspace')]",
+                            "type": "string"
+                        },
+                        "dcrConfig": {
+                            "defaultValue": {
+                                "dataCollectionEndpoint": "data collection Endpoint",
+                                "dataCollectionRuleImmutableId": "data collection rule immutableId"
+                            },
+                            "type": "object"
+                        },
+                        "companyGuid": {
+                            "defaultValue": "",
+                            "type": "string",
+                            "minLength": 1,
+                            "metadata": {
+                                "description": "Bitsight company GUID to ingest findings for."
+                            }
+                        },
+                        "apiToken": {
+                            "defaultValue": "",
+                            "type": "securestring",
+                            "minLength": 1,
+                            "metadata": {
+                                "description": "Bitsight API token (sent as Basic auth username)."
+                            }
+                        }
+                    },
+                    "variables": {
+                        "_dataConnectorContentIdConnections": "[variables('_dataConnectorContentIdConnections')]"
+                    },
+                    "resources": [
+                        {
+                            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/',concat('DataConnector-', variables('_dataConnectorContentIdConnections')))]",
+                            "apiVersion": "2022-01-01-preview",
+                            "type": "Microsoft.OperationalInsights/workspaces/providers/metadata",
+                            "properties": {
+                                "parentId": "[extensionResourceId(resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspace')), 'Microsoft.SecurityInsights/dataConnectors', variables('_dataConnectorContentIdConnections'))]",
+                                "contentId": "[variables('_dataConnectorContentIdConnections')]",
+                                "kind": "ResourcesDataConnector",
+                                "version": "[variables('dataConnectorVersionConnections')]",
+                                "source": {
+                                    "sourceId": "[variables('_solutionId')]",
+                                    "name": "[variables('_solutionName')]",
+                                    "kind": "Solution"
+                                },
+                                "author": {
+                                    "name": "[variables('_solutionAuthor')]"
+                                },
+                                "support": {
+                                    "name": "[variables('_solutionAuthor')]",
+                                    "tier": "[variables('_solutionTier')]"
+                                }
+                            }
+                        },
+                        {
+                            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/', 'BitsightRiskFindingsConnector')]",
+                            "apiVersion": "2022-12-01-preview",
+                            "type": "Microsoft.OperationalInsights/workspaces/providers/dataConnectors",
+                            "location": "[parameters('workspace-location')]",
+                            "kind": "RestApiPoller",
+                            "properties": {
+                                "connectorDefinitionName": "[[parameters('connectorDefinitionName')]",
+                                "dataType": "BitsightRiskFindings_CL",
+                                "dcrConfig": {
+                                    "dataCollectionEndpoint": "[[parameters('dcrConfig').dataCollectionEndpoint]",
+                                    "dataCollectionRuleImmutableId": "[[parameters('dcrConfig').dataCollectionRuleImmutableId]",
+                                    "streamName": "Custom-BitsightRiskFindingsRaw"
+                                },
+                                "auth": {
+                                    "type": "APIKey",
+                                    "ApiKey": "[[base64(concat(parameters('apiToken'), ':'))]",
+                                    "ApiKeyName": "Authorization",
+                                    "ApiKeyIdentifier": "Basic"
+                                },
+                                "request": {
+                                    "apiEndpoint": "[[concat('https://api.bitsighttech.com/ratings/v1/companies/', parameters('companyGuid'), '/findings')]",
+                                    "httpMethod": "GET",
+                                    "queryTimeFormat": "yyyy-MM-dd",
+                                    "queryWindowInMin": 1440,
+                                    "startTimeAttributeName": "last_seen_gte",
+                                    "endTimeAttributeName": "last_seen_lte",
+                                    "rateLimitQPS": 5,
+                                    "retryCount": 3,
+                                    "timeoutInSeconds": 60,
+                                    "headers": {
+                                        "Accept": "application/json",
+                                        "User-Agent": "Sentinel-CCF-Bitsight-Connector"
+                                    },
+                                    "queryParameters": {
+                                        "limit": 100,
+                                        "expand": "remediation_history,tag_details,attributed_companies"
+                                    }
+                                },
+                                "response": {
+                                    "eventsJsonPaths": [
+                                        "$.results"
+                                    ],
+                                    "format": "json"
+                                },
+                                "paging": {
+                                    "pagingType": "LinkHeader",
+                                    "linkHeaderTokenJsonPath": "$.links.next"
+                                },
+                                "isActive": true
+                            }
+                        }
+                    ]
+                },
+                "packageKind": "Solution",
+                "packageVersion": "[variables('_solutionVersion')]",
+                "packageName": "[variables('_solutionName')]",
+                "contentProductId": "[concat(substring(variables('_solutionId'), 0, 50),'-','rdc','-', uniqueString(concat(variables('_solutionId'),'-','ResourcesDataConnector','-',variables('_dataConnectorContentIdConnections'),'-', variables('dataConnectorVersionConnections'))))]",
+                "packageId": "[variables('_solutionId')]",
+                "contentSchemaVersion": "3.0.0",
+                "version": "[variables('_solutionVersion')]"
+            }
+        },
+        {
+            "type": "Microsoft.OperationalInsights/workspaces/providers/contentPackages",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/', variables('_solutionId'))]",
+            "location": "[parameters('workspace-location')]",
+            "apiVersion": "2023-04-01-preview",
+            "properties": {
+                "version": "[variables('_solutionVersion')]",
+                "kind": "Solution",
+                "contentSchemaVersion": "3.0.0",
+                "contentId": "[variables('_solutionId')]",
+                "source": {
+                    "kind": "Solution",
+                    "name": "[variables('_solutionName')]",
+                    "sourceId": "[variables('_solutionId')]"
+                },
+                "author": {
+                    "name": "[variables('_solutionAuthor')]"
+                },
+                "support": {
+                    "name": "[variables('_solutionAuthor')]"
+                },
+                "dependencies": {
+                    "operator": "AND",
+                    "criteria": [
+                        {
+                            "kind": "DataConnector",
+                            "contentId": "[variables('dataConnectorVersionConnectorDefinition')]",
+                            "version": "[variables('_dataConnectorContentIdConnectorDefinition')]"
+                        }
+                    ]
+                },
+                "firstPublishDate": "2026-06-02",
+                "providers": [
+                    "[variables('_solutionAuthor')]"
+                ],
+                "contentKind": "Solution",
+                "packageId": "[variables('_solutionId')]",
+                "contentProductId": "[concat(substring(variables('_solutionId'), 0, 50),'-','sl','-', uniqueString(concat(variables('_solutionId'),'-','Solution','-',variables('_solutionId'),'-', variables('_solutionVersion'))))]",
+                "displayName": "[variables('_solutionName')]",
+                "publisherDisplayName": "[variables('_solutionId')]",
+                "descriptionHtml": "Bitsight Risk Findings CCF data connector, migrated from the Azure Function solution.",
+                "icon": "[variables('_packageIcon')]"
+            }
+        }
+    ]
+}
