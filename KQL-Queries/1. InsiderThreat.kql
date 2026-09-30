@@ -1,0 +1,16 @@
+// Insider Threat – Suspicious large number of sign-ins followed by privileged role assignment
+let TimeWindow = 1h;
+SigninLogs
+| where ResultType == 0 // successful sign-in
+| where Timestamp > ago(24h)
+| summarize SigninsCount = count() by UserPrincipalName, bin(Timestamp, TimeWindow)
+| where SigninsCount > 10
+| join kind = inner (
+    AuditLogs
+    | where OperationName == "Add member to role" or OperationName == "Add role assignment"
+    | where TargetResources has "Role" and TargetResources has UserPrincipalName
+    | project Timestamp, UserPrincipalName, Role = TargetResources
+) on UserPrincipalName
+| where Timestamp_x < Timestamp_y
+| project UserPrincipalName, SigninsCount, Role, RoleAssignmentTime = Timestamp_y, LastSignInTime = Timestamp_x
+| sort by SigninsCount desc

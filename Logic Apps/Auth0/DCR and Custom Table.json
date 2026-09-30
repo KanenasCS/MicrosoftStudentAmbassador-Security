@@ -1,0 +1,145 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "DCR Auth0 name": {
+      "type": "String",
+      "defaultValue": ""
+    },
+    "DCE Auth0 External ID": {
+      "type": "String",
+      "defaultValue": ""
+    },
+    "LA External ID": {
+      "type": "String",
+      "defaultValue": ""
+    },
+    "workspaceName": {
+      "type": "String",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Name of the Log Analytics workspace (for table child resource name)."
+      }
+    },
+    "tableName": {
+      "type": "String",
+      "defaultValue": "Auth0_CL",
+      "metadata": {
+        "description": "Custom table name (include _CL)."
+      }
+    },
+    "tablePlan": {
+      "type": "String",
+      "defaultValue": "Auxiliary",
+      "allowedValues": [ "Auxiliary", "Basic", "Analytics" ],
+      "metadata": {
+        "description": "Table plan."
+      }
+    },
+    "tableTotalRetentionDays": {
+      "type": "Int",
+      "defaultValue": 365
+    },
+    "location": {
+      "type": "String",
+      "defaultValue": "westeurope"
+    }
+  },
+  "variables": {
+    "customStreamName": "[concat('Custom-', parameters('tableName'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/tables",
+      "apiVersion": "2025-02-01",
+      "name": "[concat(parameters('workspaceName'), '/', parameters('tableName'))]",
+      "properties": {
+        "plan": "[parameters('tablePlan')]",
+        "totalRetentionInDays": "[parameters('tableTotalRetentionDays')]",
+        "schema": {
+          "name": "[parameters('tableName')]",
+          "columns": [
+            { "name": "TimeGenerated", "type": "dateTime" },
+            { "name": "createDate", "type": "dateTime" },
+            { "name": "data", "type": "string" },
+            { "name": "log_id", "type": "string" },
+            { "name": "logType", "type": "string" },
+            { "name": "description", "type": "string" },
+            { "name": "client_id", "type": "string" },
+            { "name": "client_name", "type": "string" },
+            { "name": "ip", "type": "string" },
+            { "name": "user_agent", "type": "string" },
+            { "name": "details", "type": "string" },
+            { "name": "user_id", "type": "string" },
+            { "name": "user_name", "type": "string" },
+            { "name": "strategy", "type": "string" },
+            { "name": "strategy_type", "type": "string" }
+          ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Insights/dataCollectionRules",
+      "apiVersion": "2023-03-11",
+      "name": "[parameters('DCR Auth0 name')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces/tables', parameters('workspaceName'), parameters('tableName'))]"
+      ],
+      "properties": {
+        "dataCollectionEndpointId": "[parameters('DCE Auth0 External ID')]",
+        "streamDeclarations": {
+          "Custom-Auth0_CL": {
+            "columns": [
+              { "name": "TimeGenerated", "type": "datetime" },
+              { "name": "createDate", "type": "datetime" },
+              { "name": "data", "type": "string" },
+              { "name": "log_id", "type": "string" },
+              { "name": "logType", "type": "string" },
+              { "name": "description", "type": "string" },
+              { "name": "client_id", "type": "string" },
+              { "name": "client_name", "type": "string" },
+              { "name": "ip", "type": "string" },
+              { "name": "user_agent", "type": "string" },
+              { "name": "details", "type": "string" },
+              { "name": "user_id", "type": "string" },
+              { "name": "user_name", "type": "string" },
+              { "name": "strategy", "type": "string" },
+              { "name": "strategy_type", "type": "string" }
+            ]
+          }
+        },
+        "destinations": {
+          "logAnalytics": [
+            {
+              "workspaceResourceId": "[parameters('LA External ID')]",
+              "name": "myworkspace"
+            }
+          ]
+        },
+        "dataFlows": [
+          {
+            "streams": [
+              "Custom-Auth0_CL"
+            ],
+            "destinations": [
+              "myworkspace"
+            ],
+            "transformKql": "source | extend createDate = TimeGenerated",
+            "outputStream": "[variables('customStreamName')]"
+          }
+        ]
+      }
+    }
+  ],
+  "outputs": {
+    "customTableName": {
+      "type": "string",
+      "value": "[parameters('tableName')]"
+    },
+    "dcrResourceId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Insights/dataCollectionRules', parameters('DCR Auth0 name'))]"
+    }
+  }
+}

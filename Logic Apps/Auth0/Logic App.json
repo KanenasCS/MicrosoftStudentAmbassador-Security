@@ -1,0 +1,336 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "Logic_App_name": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "Custom_Table_name_without_CL": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "DCE_Logs_Ingestion_URL": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "DCR_Logs_Immutable_ID": {
+            "defaultValue": "",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Logic/workflows",
+            "apiVersion": "2017-07-01",
+            "name": "[parameters('Logic_App_name')]",
+            "location": "westeurope",
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "state": "Enabled",
+                "definition": {
+                    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "$connections": {
+                            "defaultValue": {},
+                            "type": "Object"
+                        }
+                    },
+                    "triggers": {
+                        "When_an_HTTP_request_is_received": {
+                            "type": "Request",
+                            "kind": "Http"
+                        }
+                    },
+                    "actions": {
+                        "Parse_JSON": {
+                            "runAfter": {},
+                            "type": "ParseJson",
+                            "inputs": {
+                                "content": "@triggerBody()",
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "log_id": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "date": {
+                                                    "type": "string"
+                                                },
+                                                "type": {
+                                                    "type": "string"
+                                                },
+                                                "description": {
+                                                    "type": "string"
+                                                },
+                                                "client_id": {
+                                                    "type": "string"
+                                                },
+                                                "client_name": {
+                                                    "type": "string"
+                                                },
+                                                "ip": {
+                                                    "type": "string"
+                                                },
+                                                "user_agent": {
+                                                    "type": "string"
+                                                },
+                                                "details": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "request": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "method": {
+                                                                    "type": "string"
+                                                                },
+                                                                "path": {
+                                                                    "type": "string"
+                                                                },
+                                                                "query": {
+                                                                    "type": "object",
+                                                                    "properties": {}
+                                                                },
+                                                                "userAgent": {
+                                                                    "type": "string"
+                                                                },
+                                                                "body": {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "name": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "type": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "sink": {
+                                                                            "type": "object",
+                                                                            "properties": {
+                                                                                "httpContentFormat": {
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "httpContentType": {
+                                                                                    "type": "string"
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "channel": {
+                                                                    "type": "string"
+                                                                },
+                                                                "ip": {
+                                                                    "type": "string"
+                                                                },
+                                                                "auth": {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "user": {
+                                                                            "type": "object",
+                                                                            "properties": {
+                                                                                "user_id": {
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "name": {
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "email": {
+                                                                                    "type": "string"
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        "strategy": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "credentials": {
+                                                                            "type": "object",
+                                                                            "properties": {
+                                                                                "jti": {
+                                                                                    "type": "string"
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        "response": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "statusCode": {
+                                                                    "type": "integer"
+                                                                },
+                                                                "body": {
+                                                                    "type": "object",
+                                                                    "properties": {
+                                                                        "id": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "name": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "type": {
+                                                                            "type": "string"
+                                                                        },
+                                                                        "sink": {
+                                                                            "type": "object",
+                                                                            "properties": {
+                                                                                "httpContentFormat": {
+                                                                                    "type": "string"
+                                                                                },
+                                                                                "httpContentType": {
+                                                                                    "type": "string"
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "user_id": {
+                                                    "type": "string"
+                                                },
+                                                "$event_schema": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "version": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                },
+                                                "environment_name": {
+                                                    "type": "string"
+                                                },
+                                                "log_id": {
+                                                    "type": "string"
+                                                },
+                                                "tenant_name": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "Compose": {
+                            "runAfter": {
+                                "Parse_JSON": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Compose",
+                            "inputs": {
+                                "createDate": "@body('Parse_JSON')?['data']?['date']",
+                                "data": "@body('Parse_JSON')?['data']",
+                                "log_id": "@body('Parse_JSON')?['log_id']",
+                                "logType": "@body('Parse_JSON')?['data']?['type']",
+                                "description": "@body('Parse_JSON')?['data']?['description']",
+                                "client_id": "@body('Parse_JSON')?['data']?['client_id']",
+                                "client_name": "@body('Parse_JSON')?['data']?['client_name']",
+                                "ip": "@body('Parse_JSON')?['data']?['ip']",
+                                "user_agent": "@body('Parse_JSON')?['data']?['user_agent']",
+                                "details": "@body('Parse_JSON')?['data']?['details']",
+                                "user_id": "@body('Parse_JSON')?['data']?['details']?['request']?['auth']?['user']?['user_id']",
+                                "strategy": "@body('Parse_JSON')?['data']?['details']?['request']?['auth']?['strategy']"
+                            }
+                        },
+                        "HTTP": {
+                            "runAfter": {
+                                "Initialize_variable_DCRImmutableID": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Http",
+                            "inputs": {
+                                "uri": "@{variables('DCELogsIngestionURL')}/dataCollectionRules/@{variables('DCRImmutableID')}/streams/@{variables('DCRStreamName')}?api-version=2023-01-01",
+                                "method": "POST",
+                                "headers": {
+                                    "Content-Type": "application/json"
+                                },
+                                "body": [
+                                    "@outputs('Compose')"
+                                ],
+                                "authentication": {
+                                    "type": "ManagedServiceIdentity",
+                                    "audience": "https://monitor.azure.com"
+                                }
+                            },
+                            "runtimeConfiguration": {
+                                "contentTransfer": {
+                                    "transferMode": "Chunked"
+                                }
+                            }
+                        },
+                        "DCELogsIngestionURL": {
+                            "runAfter": {
+                                "Compose": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "DCELogsIngestionURL",
+                                        "type": "string",
+                                        "value": "[parameters('DCE_Logs_Ingestion_URL')]"
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_variable_DCRStreamName": {
+                            "runAfter": {
+                                "DCELogsIngestionURL": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "DCRstreamname",
+                                        "type": "string",
+                                        "value": "[concat('Custom-', parameters('Custom_Table_name_without_CL'), '_CL')]"
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_variable_DCRImmutableID": {
+                            "runAfter": {
+                                "Initialize_variable_DCRStreamName": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "InitializeVariable",
+                            "inputs": {
+                                "variables": [
+                                    {
+                                        "name": "DCRImmutableID",
+                                        "type": "string",
+                                        "value": "[parameters('DCR_Logs_Immutable_ID')]"
+                                    }
+                                ]
+                            }
+                        }
+                    },
+                    "outputs": {}
+                },
+                "parameters": {
+                    "$connections": {
+                        "value": {}
+                    }
+                }
+            }
+        }
+    ]
+}

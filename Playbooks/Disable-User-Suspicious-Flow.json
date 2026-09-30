@@ -1,0 +1,58 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {},
+    "triggers": {
+      "When_Sentinel_Alert_Is_Triggered": {
+        "type": "Request",
+        "kind": "Http",
+        "inputs": {
+          "schema": {}
+        }
+      }
+    },
+    "actions": {
+      "Get_User_From_Alert": {
+        "type": "Compose",
+        "inputs": "@triggerBody()?['entities'][0]['userPrincipalName']"
+      },
+      "Disable_User_Account": {
+        "type": "ApiConnection",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['azuread']['connectionId']"
+            }
+          },
+          "method": "post",
+          "path": "/users/@{outputs('Get_User_From_Alert')}/blockSignIn",
+          "body": {
+            "accountEnabled": false
+          }
+        },
+        "runAfter": {}
+      },
+      "Notify_Teams": {
+        "type": "ApiConnection",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['microsoftteams']['connectionId']"
+            }
+          },
+          "method": "post",
+          "path": "/v3/conversations/@{encodeURIComponent('<YOUR-TEAM-ID>')}/activities",
+          "body": {
+            "type": "message",
+            "text": "🚨 Sentinel Alert: Suspicious Power Automate activity detected. User @{outputs('Get_User_From_Alert')} has been temporarily disabled."
+          }
+        },
+        "runAfter": {
+          "Disable_User_Account": ["Succeeded"]
+        }
+      }
+    }
+  },
+  "kind": "Stateful"
+}

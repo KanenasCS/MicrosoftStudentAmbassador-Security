@@ -1,0 +1,208 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "DCR juniper name": {
+      "type": "String",
+      "defaultValue": ""
+    },
+    "DCE juniper External ID": {
+      "type": "String",
+      "defaultValue": ""
+    },
+    "LA External ID": {
+      "type": "String",
+      "defaultValue": ""
+    },
+    "workspaceName": {
+      "type": "String",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Name of the Log Analytics workspace (for table child resource name)."
+      }
+    },
+    "tableName": {
+      "type": "String",
+      "defaultValue": "juniper_CL",
+      "metadata": {
+        "description": "Custom table name (include _CL)."
+      }
+    },
+    "tablePlan": {
+      "type": "String",
+      "defaultValue": "Analytics",
+      "allowedValues": [ "Auxiliary", "Basic", "Analytics" ],
+      "metadata": {
+        "description": "Table plan."
+      }
+    },
+    "tableTotalRetentionDays": {
+      "type": "Int",
+      "defaultValue": 365
+    },
+    "location": {
+      "type": "String",
+      "defaultValue": "westeurope"
+    }
+  },
+  "variables": {
+    "customStreamName": "[concat('Custom-', parameters('tableName'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/tables",
+      "apiVersion": "2025-02-01",
+      "name": "[concat(parameters('workspaceName'), '/', parameters('tableName'))]",
+      "properties": {
+        "plan": "[parameters('tablePlan')]",
+        "totalRetentionInDays": "[parameters('tableTotalRetentionDays')]",
+        "schema": {
+          "name": "[parameters('tableName')]",
+          "columns": [
+            { "name": "TimeGenerated", "type": "dateTime" },
+            { "name": "key", "type": "string" },
+            { "name": "display", "type": "string" },
+            { "name": "group", "type": "string" },
+            { "name": "severity", "type": "string" },
+            { "name": "id", "type": "string" },
+            { "name": "org_id", "type": "string" },
+            { "name": "site_id", "type": "string" },
+            { "name": "type", "type": "string" },
+            { "name": "timestamp", "type": "dateTime" },
+            { "name": "last_seen", "type": "dateTime" },
+            { "name": "secpolicy_violated", "type": "boolean" },
+            { "name": "aps", "type": "dynamic" },
+            { "name": "hostnames", "type": "dynamic" },
+            { "name": "wlan_ids", "type": "dynamic" },
+            { "name": "count", "type": "Int" },
+            { "name": "bssids", "type": "string" },
+            { "name": "ssids", "type": "dynamic" },
+            { "name": "client_mac1", "type": "string" },
+            { "name": "client_mac2", "type": "string" },
+            { "name": "wcids", "type": "dynamic" },
+            { "name": "client_macs", "type": "dynamic" },
+            { "name": "site_name", "type": "string" },
+            { "name": "When", "type": "datetime" },
+            { "name": "gateways", "type": "dynamic" },
+            { "name": "domains", "type": "dynamic" },
+            { "name": "urls", "type": "dynamic" },
+            { "name": "applications", "type": "dynamic" },
+            { "name": "categories", "type": "dynamic" },
+            { "name": "sub_categories", "type": "dynamic" },
+            { "name": "client_ips", "type": "dynamic" },
+            { "name": "attacks", "type": "dynamic" },
+            { "name": "cve_ids", "type": "dynamic" },
+            { "name": "ingress_ports", "type": "dynamic" },
+            { "name": "attacker_ips", "type": "dynamic" },
+            { "name": "protocols", "type": "dynamic" },
+            { "name": "application", "type": "dynamic" },
+            { "name": "switches", "type": "dynamic" },
+            { "name": "models", "type": "dynamic" },
+            { "name": "details", "type": "dynamic" },
+            { "name": "protocol_name", "type": "string" },
+            { "name": "ev_type", "type": "string" },
+            { "name": "device_type", "type": "string" },
+            { "name": "version", "type": "string" },
+            { "name": "mac", "type": "string" },
+            { "name": "reasons", "type": "dynamic" }
+            
+          ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Insights/dataCollectionRules",
+      "apiVersion": "2023-03-11",
+      "name": "[parameters('DCR juniper name')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces/tables', parameters('workspaceName'), parameters('tableName'))]"
+      ],
+      "properties": {
+        "dataCollectionEndpointId": "[parameters('DCE juniper External ID')]",
+        "streamDeclarations": {
+          "Custom-juniper_CL": {
+            "columns": [
+              { "name": "TimeGenerated", "type": "dateTime" },
+            { "name": "key", "type": "string" },
+            { "name": "display", "type": "string" },
+            { "name": "group", "type": "string" },
+            { "name": "severity", "type": "string" },
+            { "name": "id", "type": "string" },
+            { "name": "org_id", "type": "string" },
+            { "name": "site_id", "type": "string" },
+            { "name": "type", "type": "string" },
+            { "name": "timestamp", "type": "dateTime" },
+            { "name": "last_seen", "type": "dateTime" },
+            { "name": "secpolicy_violated", "type": "boolean" },
+            { "name": "aps", "type": "dynamic" },
+            { "name": "hostnames", "type": "dynamic" },
+            { "name": "wlan_ids", "type": "dynamic" },
+            { "name": "count", "type": "Int" },
+            { "name": "bssids", "type": "string" },
+            { "name": "ssids", "type": "dynamic" },
+            { "name": "client_mac1", "type": "string" },
+            { "name": "client_mac2", "type": "string" },
+            { "name": "wcids", "type": "dynamic" },
+            { "name": "client_macs", "type": "dynamic" },
+            { "name": "site_name", "type": "string" },
+            { "name": "When", "type": "datetime" },
+            { "name": "gateways", "type": "dynamic" },
+            { "name": "domains", "type": "dynamic" },
+            { "name": "urls", "type": "dynamic" },
+            { "name": "applications", "type": "dynamic" },
+            { "name": "categories", "type": "dynamic" },
+            { "name": "sub_categories", "type": "dynamic" },
+            { "name": "client_ips", "type": "dynamic" },
+            { "name": "attacks", "type": "dynamic" },
+            { "name": "cve_ids", "type": "dynamic" },
+            { "name": "ingress_ports", "type": "dynamic" },
+            { "name": "attacker_ips", "type": "dynamic" },
+            { "name": "protocols", "type": "dynamic" },
+            { "name": "application", "type": "dynamic" },
+            { "name": "switches", "type": "dynamic" },
+            { "name": "models", "type": "dynamic" },
+            { "name": "details", "type": "dynamic" },
+            { "name": "protocol_name", "type": "string" },
+            { "name": "ev_type", "type": "string" },
+            { "name": "device_type", "type": "string" },
+            { "name": "version", "type": "string" },
+            { "name": "mac", "type": "string" },
+            { "name": "reasons", "type": "dynamic" }
+            ]
+          }
+        },
+        "destinations": {
+          "logAnalytics": [
+            {
+              "workspaceResourceId": "[parameters('LA External ID')]",
+              "name": "myworkspace"
+            }
+          ]
+        },
+        "dataFlows": [
+          {
+            "streams": [
+              "Custom-juniper_CL"
+            ],
+            "destinations": [
+              "myworkspace"
+            ],
+            "transformKql": "source | extend createDate = TimeGenerated",
+            "outputStream": "[variables('customStreamName')]"
+          }
+        ]
+      }
+    }
+  ],
+  "outputs": {
+    "customTableName": {
+      "type": "string",
+      "value": "[parameters('tableName')]"
+    },
+    "dcrResourceId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Insights/dataCollectionRules', parameters('DCR juniper name'))]"
+    }
+  }
+}

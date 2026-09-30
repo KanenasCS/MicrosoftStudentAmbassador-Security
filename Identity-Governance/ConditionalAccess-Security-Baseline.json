@@ -1,0 +1,42 @@
+{
+  "ConditionalAccessPolicy": {
+    "id": "Security-Baseline",
+    "displayName": "Security Baseline - Require MFA for All Users",
+    "state": "enabled",
+    "conditions": {
+      "users": {
+        "includeUsers": ["All"],
+        "excludeUsers": ["BreakGlassAdmin@domain.com"]
+      },
+      "applications": {
+        "includeApplications": ["All"]
+      },
+      "signInRiskLevels": ["high", "medium"],
+      "clientAppTypes": ["all"],
+      "platforms": {
+        "includePlatforms": ["all"]
+      },
+      "locations": {
+        "includeLocations": ["All"],
+        "excludeLocations": ["TrustedIPRange"]
+      }
+    },
+    "grantControls": {
+      "operator": "OR",
+      "builtInControls": ["mfa"]
+    },
+    "sessionControls": {
+      "signInFrequency": {
+        "value": 4,
+        "type": "hours",
+        "isEnabled": true
+      },
+      "persistentBrowser": "never"
+    },
+    "conditionsDeviceFilter": {
+      "mode": "include",
+      "rule": "device.managementType -eq \"compliant\""
+    },
+    "description": "Baseline Conditional Access policy enforcing MFA for all users, blocking legacy auth, and securing high-risk sign-ins."
+  }
+}

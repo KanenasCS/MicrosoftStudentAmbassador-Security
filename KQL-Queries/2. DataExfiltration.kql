@@ -1,0 +1,16 @@
+// Data Exfiltration – Large file transfers or external network uploads after file read events
+let FileReadEvents = DeviceFileEvents
+    | where ActionType == "FileRead"
+    | project Timestamp, DeviceId, InitiatingProcessAccountName, FileName, FileSize;
+let NetworkEvents = DeviceNetworkEvents
+    | where RemoteIPType == "Public"
+    | project Timestamp, DeviceId, InitiatingProcessAccountName, RemoteIP, BytesSent;
+FileReadEvents
+| join kind=inner (
+    NetworkEvents
+    | extend UploadWindow = bin(Timestamp, 1h)
+) on InitiatingProcessAccountName, DeviceId
+| where NetworkEvents.Timestamp > FileReadEvents.Timestamp 
+| where BytesSent > 10000000  // e.g., >10MB upload
+| project InitiatingProcessAccountName, DeviceId, FileName, FileSize, RemoteIP, BytesSent, FileReadTime = FileReadEvents.Timestamp, NetworkUploadTime = NetworkEvents.Timestamp
+| sort by BytesSent desc

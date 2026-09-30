@@ -1,0 +1,5 @@
+SigninLogs
+| where LocationDetails contains "Amazon" or IPAddress startswith "3." or IPAddress startswith "13."
+| summarize Count = count() by UserPrincipalName, IPAddress, bin(TimeGenerated, 1h)
+| where Count > 3
+| extend AlertMessage = strcat("Multiple sign-ins detected from AWS IP space for user: ", UserPrincipalName)

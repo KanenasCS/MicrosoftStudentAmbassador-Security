@@ -1,0 +1,55 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {},
+    "triggers": {
+      "When_a_response_to_a_Sentinel_alert_is_triggered": {
+        "type": "Request",
+        "kind": "Http",
+        "inputs": {
+          "schema": {}
+        }
+      }
+    },
+    "actions": {
+      "Get_Incident_Entities": {
+        "type": "ApiConnection",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['azuresentinel']['connectionId']"
+            }
+          },
+          "method": "get",
+          "path": "/entities",
+          "queries": {
+            "alertIds": "@triggerBody()?['AlertIds']"
+          }
+        }
+      },
+      "For_each_Device": {
+        "foreach": "@body('Get_Incident_Entities')?['Hosts']",
+        "actions": {
+          "Isolate_Device": {
+            "type": "ApiConnection",
+            "inputs": {
+              "host": {
+                "connection": {
+                  "name": "@parameters('$connections')['microsoftdefenderendpoint']['connectionId']"
+                }
+              },
+              "method": "post",
+              "path": "/machines/@{items('For_each_Device')?['HostName']}/isolate",
+              "body": {
+                "Comment": "Automated isolation from Sentinel playbook."
+              }
+            }
+          }
+        },
+        "type": "Foreach"
+      }
+    }
+  },
+  "kind": "Stateful"
+}

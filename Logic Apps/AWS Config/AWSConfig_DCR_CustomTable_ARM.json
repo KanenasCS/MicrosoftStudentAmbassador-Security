@@ -1,0 +1,292 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "dcrName": {
+      "type": "String",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Name of the Data Collection Rule (DCR) for AWS Config ingestion."
+      }
+    },
+    "dceResourceId": {
+      "type": "String",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Resource ID of the Data Collection Endpoint (DCE)."
+      }
+    },
+    "workspaceResourceId": {
+      "type": "String",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Resource ID of the Log Analytics workspace."
+      }
+    },
+    "workspaceName": {
+      "type": "String",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Name of the Log Analytics workspace (for table child resource name)."
+      }
+    },
+    "tableName": {
+      "type": "String",
+      "defaultValue": "AWSConfigItems_CL",
+      "metadata": {
+        "description": "Custom table name (must include _CL)."
+      }
+    },
+    "tablePlan": {
+      "type": "String",
+      "defaultValue": "Analytics",
+      "allowedValues": [
+        "Auxiliary",
+        "Basic",
+        "Analytics"
+      ],
+      "metadata": {
+        "description": "Table plan."
+      }
+    },
+    "tableTotalRetentionDays": {
+      "type": "int",
+      "defaultValue": 365
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "westeurope"
+    }
+  },
+  "variables": {
+    "customStreamName": "[concat('Custom-', parameters('tableName'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/tables",
+      "apiVersion": "2025-02-01",
+      "name": "[concat(parameters('workspaceName'), '/', parameters('tableName'))]",
+      "properties": {
+        "plan": "[parameters('tablePlan')]",
+        "totalRetentionInDays": "[parameters('tableTotalRetentionDays')]",
+        "schema": {
+          "name": "[parameters('tableName')]",
+          "columns": [
+            {
+              "name": "TimeGenerated",
+              "type": "dateTime"
+            },
+            {
+              "name": "CaptureTime",
+              "type": "dateTime"
+            },
+            {
+              "name": "AwsAccountId",
+              "type": "string"
+            },
+            {
+              "name": "AwsRegion",
+              "type": "string"
+            },
+            {
+              "name": "ResourceType",
+              "type": "string"
+            },
+            {
+              "name": "ResourceId",
+              "type": "string"
+            },
+            {
+              "name": "Arn",
+              "type": "string"
+            },
+            {
+              "name": "AvailabilityZone",
+              "type": "string"
+            },
+            {
+              "name": "ConfigItemStatus",
+              "type": "string"
+            },
+            {
+              "name": "ConfigItemVersion",
+              "type": "string"
+            },
+            {
+              "name": "ConfigStateId",
+              "type": "long"
+            },
+            {
+              "name": "ConfigStateMd5Hash",
+              "type": "string"
+            },
+            {
+              "name": "RelatedEvents",
+              "type": "dynamic"
+            },
+            {
+              "name": "Relationships",
+              "type": "dynamic"
+            },
+            {
+              "name": "Tags",
+              "type": "dynamic"
+            },
+            {
+              "name": "Configuration",
+              "type": "dynamic"
+            },
+            {
+              "name": "SupplementaryConfiguration",
+              "type": "dynamic"
+            },
+            {
+              "name": "MessageType",
+              "type": "string"
+            },
+            {
+              "name": "SourceFile",
+              "type": "string"
+            },
+            {
+              "name": "RawItem",
+              "type": "dynamic"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Insights/dataCollectionRules",
+      "apiVersion": "2023-03-11",
+      "name": "[parameters('dcrName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces/tables', parameters('workspaceName'), parameters('tableName'))]"
+      ],
+      "properties": {
+        "dataCollectionEndpointId": "[parameters('dceResourceId')]",
+        "streamDeclarations": {
+          "[variables('customStreamName')]": {
+            "columns": [
+              {
+                "name": "TimeGenerated",
+                "type": "datetime"
+              },
+              {
+                "name": "CaptureTime",
+                "type": "datetime"
+              },
+              {
+                "name": "AwsAccountId",
+                "type": "string"
+              },
+              {
+                "name": "AwsRegion",
+                "type": "string"
+              },
+              {
+                "name": "ResourceType",
+                "type": "string"
+              },
+              {
+                "name": "ResourceId",
+                "type": "string"
+              },
+              {
+                "name": "Arn",
+                "type": "string"
+              },
+              {
+                "name": "AvailabilityZone",
+                "type": "string"
+              },
+              {
+                "name": "ConfigItemStatus",
+                "type": "string"
+              },
+              {
+                "name": "ConfigItemVersion",
+                "type": "string"
+              },
+              {
+                "name": "ConfigStateId",
+                "type": "long"
+              },
+              {
+                "name": "ConfigStateMd5Hash",
+                "type": "string"
+              },
+              {
+                "name": "RelatedEvents",
+                "type": "dynamic"
+              },
+              {
+                "name": "Relationships",
+                "type": "dynamic"
+              },
+              {
+                "name": "Tags",
+                "type": "dynamic"
+              },
+              {
+                "name": "Configuration",
+                "type": "dynamic"
+              },
+              {
+                "name": "SupplementaryConfiguration",
+                "type": "dynamic"
+              },
+              {
+                "name": "MessageType",
+                "type": "string"
+              },
+              {
+                "name": "SourceFile",
+                "type": "string"
+              },
+              {
+                "name": "RawItem",
+                "type": "dynamic"
+              }
+            ]
+          }
+        },
+        "destinations": {
+          "logAnalytics": [
+            {
+              "workspaceResourceId": "[parameters('workspaceResourceId')]",
+              "name": "myworkspace"
+            }
+          ]
+        },
+        "dataFlows": [
+          {
+            "streams": [
+              "[variables('customStreamName')]"
+            ],
+            "destinations": [
+              "myworkspace"
+            ],
+            "transformKql": "source\n| extend TimeGenerated = todatetime(CaptureTime)",
+            "outputStream": "[variables('customStreamName')]"
+          }
+        ]
+      }
+    }
+  ],
+  "outputs": {
+    "customTableName": {
+      "type": "String",
+      "value": "[parameters('tableName')]"
+    },
+    "customStreamName": {
+      "type": "String",
+      "value": "[variables('customStreamName')]"
+    },
+    "dcrResourceId": {
+      "type": "String",
+      "value": "[resourceId('Microsoft.Insights/dataCollectionRules', parameters('dcrName'))]"
+    }
+  }
+}

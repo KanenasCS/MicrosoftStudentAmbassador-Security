@@ -1,0 +1,5 @@
+AWSCloudTrail
+| extend Region = tostring(AWSRegion)
+| summarize DistinctRegions = dcount(Region) by UserIdentityArn, bin(TimeGenerated, 1d)
+| where DistinctRegions > 3
+| project TimeGenerated, UserIdentityArn, DistinctRegions
